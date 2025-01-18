@@ -6,7 +6,7 @@
 
 For this project, I'm using a [ESP32 Dev Board](http://www.hiletgo.com/ProductDetail/1906566.html) from HiLetgo.
 
-In the Arduino IDE, select the "ESP32 Wrover Module" board.
+In the Arduino IDE, select the "ESP32 Wrover Module" board. The built-in LED is GPIO 2.
 
 When viewing the ESP32 from the top, with the USB port pointed down, the IO0 button is on the right side of the board, and the reset button is on the left side of the board. On my board, IO0 is labeled "IO0", and the reset button is labeled "EN".
 

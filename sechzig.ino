@@ -9,7 +9,7 @@
 #define WIFI_SSID "Sechzig" // WiFi SSID
 #define WIFI_PASS "" // WiFi password (leave empty for open network)
 #define FRAME_TIME 16666 // Time in microseconds for each frame (60 FPS)
-#define ANIMATION_DURATION 10000000 // Time in microseconds to play each animation
+#define ANIMATION_DURATION 60000000 // Time in microseconds to play each animation
 
 WebServer server(80);
 Adafruit_NeoPixel pixels(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);

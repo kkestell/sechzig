@@ -6,7 +6,7 @@ Lua-scripted NeoPixel LED animations.
 
 ## How it Works
 
-The ESP32 is connected to a 60-LED NeoPixel ring. The ESP32 runs a Lua interpreter that executes animation scripts to control the LEDs. It cycles through the animations, looping each animation for 10 seconds before moving on to the next one.
+The ESP32 is connected to a 60-LED NeoPixel ring. The ESP32 runs a Lua interpreter that executes animation scripts to control the LEDs. It cycles through the animations, looping each animation for one minute before moving on to the next one.
 
 The ESP32 creates a public Wi-Fi access point that hosts a web server. Users can connect to the access point and create and modify their own Lua scripts to create custom animations. The scripts are stored on a LittleFS file system on the ESP32's internal flash memory.
 
