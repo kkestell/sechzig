@@ -4,12 +4,12 @@
 #include <WebServer.h>
 #include <WiFi.h>
 
-#define LED_PIN 4
-#define NUM_PIXELS 60
-#define WIFI_SSID "Sechzig"
-#define WIFI_PASS ""                // No password
-#define FRAME_TIME 16666            // Microseconds for 60fps (1/60 second)
-#define ANIMATION_DURATION 10000000 // 10 seconds in microseconds
+#define LED_PIN 4 // NeoPixel data pin
+#define NUM_PIXELS 60 // Number of NeoPixels in the ring
+#define WIFI_SSID "Sechzig" // WiFi SSID
+#define WIFI_PASS "" // WiFi password (leave empty for open network)
+#define FRAME_TIME 16666 // Time in microseconds for each frame (60 FPS)
+#define ANIMATION_DURATION 10000000 // Time in microseconds to play each animation
 
 WebServer server(80);
 Adafruit_NeoPixel pixels(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
@@ -19,7 +19,7 @@ volatile bool scriptsUpdated = false;
 String currentScript;
 std::vector<String> scriptFiles;
 size_t currentScriptIndex = 0;
-uint64_t lastScriptChange = 0;
+uint64_t lastScriptChange;
 
 static int l_qsub8(lua_State *L)
 {
@@ -54,7 +54,6 @@ static int l_random(lua_State *L)
     return 1;
 }
 
-// Blend two colors
 static int l_blend(lua_State *L)
 {
     int r1 = lua_tointeger(L, 1);
@@ -63,7 +62,7 @@ static int l_blend(lua_State *L)
     int r2 = lua_tointeger(L, 4);
     int g2 = lua_tointeger(L, 5);
     int b2 = lua_tointeger(L, 6);
-    float ratio = lua_tonumber(L, 7); // 0.0 to 1.0
+    float ratio = lua_tonumber(L, 7);
 
     lua_pushinteger(L, r1 + (r2 - r1) * ratio);
     lua_pushinteger(L, g1 + (g2 - g1) * ratio);
@@ -71,14 +70,12 @@ static int l_blend(lua_State *L)
     return 3;
 }
 
-// Get total number of milliseconds since start
 static int l_millis(lua_State *L)
 {
     lua_pushinteger(L, esp_timer_get_time() / 1000);
     return 1;
 }
 
-// Map a number from one range to another
 static int l_map(lua_State *L)
 {
     int nargs = lua_gettop(L);
@@ -101,7 +98,6 @@ static int l_map(lua_State *L)
     return 1;
 }
 
-// Fill a range of pixels with a color
 static int l_fillRange(lua_State *L)
 {
     int start = lua_tointeger(L, 1);
@@ -120,7 +116,6 @@ static int l_fillRange(lua_State *L)
     return 0;
 }
 
-// Shift all pixels by an amount (positive or negative)
 static int l_shiftPixels(lua_State *L)
 {
     int amount = lua_tointeger(L, 1);
@@ -160,7 +155,6 @@ static int l_shiftPixels(lua_State *L)
     return 0;
 }
 
-// Set brightness for all pixels
 static int l_setBrightness(lua_State *L)
 {
     int brightness = lua_tointeger(L, 1);
@@ -169,7 +163,6 @@ static int l_setBrightness(lua_State *L)
     return 0;
 }
 
-// Create a gradient between two colors across a range
 static int l_gradient(lua_State *L)
 {
     int start = lua_tointeger(L, 1);
@@ -196,22 +189,20 @@ static int l_gradient(lua_State *L)
     return 0;
 }
 
-// Get pixel RGB values
 static int l_getPixel(lua_State *L)
 {
     int pixel = lua_tointeger(L, 1);
     if (pixel >= 0 && pixel < NUM_PIXELS)
     {
         uint32_t color = pixels.getPixelColor(pixel);
-        lua_pushinteger(L, (color >> 16) & 0xFF); // R
-        lua_pushinteger(L, (color >> 8) & 0xFF);  // G
-        lua_pushinteger(L, color & 0xFF);         // B
+        lua_pushinteger(L, (color >> 16) & 0xFF);
+        lua_pushinteger(L, (color >> 8) & 0xFF);
+        lua_pushinteger(L, color & 0xFF);
         return 3;
     }
     return 0;
 }
 
-// Print to serial for debugging
 static int l_debug(lua_State *L)
 {
     const char *msg = lua_tostring(L, 1);
@@ -219,7 +210,6 @@ static int l_debug(lua_State *L)
     return 0;
 }
 
-// Convert HSV to RGB
 static int l_hsv2rgb(lua_State *L)
 {
     float h = fmod(lua_tonumber(L, 1), 360);
@@ -274,14 +264,12 @@ static int l_hsv2rgb(lua_State *L)
     return 3;
 }
 
-// Clear all pixels
 static int l_clear(lua_State *L)
 {
     pixels.clear();
     return 0;
 }
 
-// Set a pixel color
 static int l_setPixel(lua_State *L)
 {
     int pixel = lua_tointeger(L, 1);
@@ -295,7 +283,6 @@ static int l_setPixel(lua_State *L)
     return 0;
 }
 
-// Refresh list of Lua scripts
 void refreshScriptList()
 {
     Serial.println("Refreshing script list...");
@@ -314,16 +301,12 @@ void refreshScriptList()
     root.close();
 }
 
-// GET /
 void handleRoot()
 {
-    String html = "<html><body>";
-    html += "<h2>Pixel Ring</h2>";
-
+    String html = "<html><body><h2>Pixel Ring</h2>";
     html += "<form action='/create' method='post'>";
     html += "New script name: <input type='text' name='filename'>.lua ";
-    html += "<input type='submit' value='Create'>";
-    html += "</form><hr>";
+    html += "<input type='submit' value='Create'></form><hr>";
 
     File root = LittleFS.open("/");
     File file = root.openNextFile();
@@ -336,19 +319,15 @@ void handleRoot()
             html += "<a href='/edit?file=" + fileName + "'>" + fileName + "</a> ";
             html += "<form action='/delete' method='post' style='display: inline;'>";
             html += "<input type='hidden' name='filename' value='" + fileName + "'>";
-            html += "<input type='submit' value='Delete' onclick='return confirm(\"Delete " + fileName + "?\")'>";
-            html += "</form>";
-            html += "</div>";
+            html += "<input type='submit' value='Delete'></form></div>";
         }
         file = root.openNextFile();
     }
     root.close();
-
     html += "</body></html>";
     server.send(200, "text/html", html);
 }
 
-// POST /create
 void handleCreate()
 {
     String fileName = server.arg("filename");
@@ -371,11 +350,10 @@ void handleCreate()
             xSemaphoreGive(luaScriptMutex);
         }
     }
-    server.sendHeader("Location", "/edit?file=" + fileName);
+    server.sendHeader("Location", "/");
     server.send(303);
 }
 
-// GET /edit
 void handleEdit()
 {
     String fileName = server.arg("file");
@@ -401,32 +379,27 @@ void handleEdit()
     html += content;
     html += "</textarea><br>";
     html += "<input type='hidden' name='filename' value='" + fileName + "'>";
-    html += "<input type='submit' value='Save'>";
-    html += "</form>";
+    html += "<input type='submit' value='Save'></form>";
     html += "<p><a href='/'>Back to script list</a></p>";
     html += "</body></html>";
 
     server.send(200, "text/html", html);
 }
 
-// POST /delete
 void handleDelete()
 {
     if (server.hasArg("filename"))
     {
         String fileName = server.arg("filename");
-        if (LittleFS.remove("/" + fileName))
-        {
-            xSemaphoreTake(luaScriptMutex, portMAX_DELAY);
-            scriptsUpdated = true;
-            xSemaphoreGive(luaScriptMutex);
-        }
+        LittleFS.remove("/" + fileName);
+        xSemaphoreTake(luaScriptMutex, portMAX_DELAY);
+        scriptsUpdated = true;
+        xSemaphoreGive(luaScriptMutex);
     }
     server.sendHeader("Location", "/");
     server.send(303);
 }
 
-// POST /save
 void handleSave()
 {
     if (server.hasArg("script") && server.hasArg("filename"))
@@ -439,7 +412,6 @@ void handleSave()
         {
             file.print(script);
             file.close();
-
             xSemaphoreTake(luaScriptMutex, portMAX_DELAY);
             scriptsUpdated = true;
             xSemaphoreGive(luaScriptMutex);
@@ -449,7 +421,6 @@ void handleSave()
     server.send(303);
 }
 
-// Play animations
 void animationTask(void *parameter)
 {
     uint64_t lastFrameTime = esp_timer_get_time();
@@ -458,7 +429,7 @@ void animationTask(void *parameter)
     while (true)
     {
         uint64_t now = esp_timer_get_time();
-        dt = (now - lastFrameTime) / 1000000.0f; // Convert to seconds
+        dt = (now - lastFrameTime) / 1000000.0f;
 
         if (scriptsUpdated)
         {
@@ -468,7 +439,6 @@ void animationTask(void *parameter)
             xSemaphoreGive(luaScriptMutex);
         }
 
-        // Check if it's time to switch scripts
         if (scriptFiles.size() > 0 && (now - lastScriptChange >= ANIMATION_DURATION))
         {
             pixels.clear();
@@ -508,8 +478,6 @@ void animationTask(void *parameter)
                     lua_register(L, "gradient", l_gradient);
                     lua_register(L, "debug", l_debug);
                     lua_register(L, "getPixel", l_getPixel);
-                    lua_register(L, "hsv2rgb", l_hsv2rgb);
-                    lua_register(L, "clear", l_clear);
 
                     lua_pushinteger(L, NUM_PIXELS);
                     lua_setglobal(L, "NUM_PIXELS");
@@ -524,7 +492,6 @@ void animationTask(void *parameter)
             }
         }
 
-        // Run animation frame
         if (L != NULL)
         {
             lua_getglobal(L, "tick");
@@ -540,7 +507,6 @@ void animationTask(void *parameter)
             pixels.show();
         }
 
-        // Wait for next frame
         lastFrameTime = now;
         uint64_t elapsed = esp_timer_get_time() - now;
         if (elapsed < FRAME_TIME)
@@ -581,53 +547,45 @@ void setup()
 
     refreshScriptList();
 
-    // Create animation task on core 1
+    lastScriptChange = esp_timer_get_time() - ANIMATION_DURATION;
+
     xTaskCreatePinnedToCore(animationTask, "Animation", 10000, NULL, 1, NULL, 1);
 
-    // If no scripts exist, create default fire animation
     if (scriptFiles.size() == 0)
     {
-        File file = LittleFS.open("/fire.lua", "w");
+        File file = LittleFS.open("/blinkenlights.lua", "w");
         if (file)
         {
             file.print(R"(
--- Fire animation
--- Initialize heat array
-heat = {}
+-- Blinkenlights animation
+local lastUpdate = 0
+pixels = {}
 for i = 0, NUM_PIXELS-1 do
-    heat[i] = 0
+    pixels[i] = false
 end
 
 function tick(dt)
-    -- Step 1. Cool down every cell a little
+    if millis() - lastUpdate < 500 then
+        return
+    end
+
+    lastUpdate = millis()
+
     for i = 0, NUM_PIXELS-1 do
-        local cooling = random(0, math.floor((55 * 10) / NUM_PIXELS) + 2)
-        heat[i] = qsub8(heat[i], cooling)
+        setPixel(i, 0, 0, 0)
     end
 
-    -- Step 2. Heat from each cell drifts 'up' (towards index 0)
-    for i = NUM_PIXELS-1, 2, -1 do
-        heat[i] = math.floor((heat[i-1] + heat[i-2] + heat[i-2]) / 3)
-    end
-
-    -- Step 3. Randomly ignite new sparks near the bottom
-    if random(0, 255) < 60 then
-        local y = random(0, 7)
-        heat[y] = qadd8(heat[y], random(160, 255))
-    end
-
-    -- Step 4. Convert heat to LED colors
     for i = 0, NUM_PIXELS-1 do
-        local t192 = scale8(heat[i], 191)
-        local heatramp = bit.band(t192, 0x3F)
-        heatramp = bit.lshift(heatramp, 2)
-        
-        if t192 > 128 then
-            setPixel(i, 255, 255, heatramp)
-        elseif t192 > 64 then
-            setPixel(i, 255, heatramp, 0)
-        else
-            setPixel(i, heatramp, 0, 0)
+        pixels[i] = false
+    end
+
+    local lit_count = 0
+    while lit_count < 20 do
+        local pos = random(0, NUM_PIXELS-1)
+        if not pixels[pos] then
+            setPixel(pos, 255, 0, 0)
+            pixels[pos] = true
+            lit_count = lit_count + 1
         end
     end
 end
@@ -635,65 +593,6 @@ end
             file.close();
             refreshScriptList();
         }
-    }
-
-    // Initialize animation state and load first script
-    if (scriptFiles.size() > 0)
-    {
-        currentScriptIndex = 0;
-        lastScriptChange = esp_timer_get_time();
-
-        File file = LittleFS.open("/" + scriptFiles[currentScriptIndex], "r");
-        if (file)
-        {
-            Serial.println("Loading initial script: " + scriptFiles[currentScriptIndex]);
-            currentScript = file.readString();
-            file.close();
-
-            L = luaL_newstate();
-            if (L != NULL)
-            {
-                luaL_openlibs(L);
-                lua_register(L, "setPixel", l_setPixel);
-                lua_register(L, "qsub8", l_qsub8);
-                lua_register(L, "qadd8", l_qadd8);
-                lua_register(L, "scale8", l_scale8);
-                lua_register(L, "random", l_random);
-                lua_register(L, "hsv2rgb", l_hsv2rgb);
-                lua_register(L, "clear", l_clear);
-                lua_register(L, "blend", l_blend);
-                lua_register(L, "millis", l_millis);
-                lua_register(L, "map", l_map);
-                lua_register(L, "fillRange", l_fillRange);
-                lua_register(L, "shiftPixels", l_shiftPixels);
-                lua_register(L, "setBrightness", l_setBrightness);
-                lua_register(L, "gradient", l_gradient);
-                lua_register(L, "debug", l_debug);
-                lua_register(L, "getPixel", l_getPixel);
-
-                lua_pushinteger(L, NUM_PIXELS);
-                lua_setglobal(L, "NUM_PIXELS");
-
-                if (luaL_dostring(L, currentScript.c_str()) != LUA_OK)
-                {
-                    Serial.println("Lua error in initial script:");
-                    Serial.println(lua_tostring(L, -1));
-                    lua_pop(L, 1);
-                }
-            }
-            else
-            {
-                Serial.println("Failed to create Lua state");
-            }
-        }
-        else
-        {
-            Serial.println("Failed to open initial script");
-        }
-    }
-    else
-    {
-        Serial.println("No scripts available on startup");
     }
 }
 
