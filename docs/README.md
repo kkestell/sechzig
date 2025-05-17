@@ -32,3 +32,9 @@ The NeoPixel ring requires three connections to the ESP32:
 ## Frame
 
 The film used to tint the glass is [Daytime Privacy and Heat Control Mirror Silver 5 (Very Dark)](https://buydecorativefilm.com/products/bdf-s05-window-film-one-way-mirror-silver-5) from Buy Decorative Film. The idea was to create a soft of "two-way" mirror effect, where the LEDs are visible through the glass, but the glass is reflective when the LEDs are off.
+
+```
+$ arduino-cli lib install "Adafruit NeoPixel"
+$ arduino-cli compile --fqbn esp32:esp32:esp32wrover --libraries ./lua
+$ arduino-cli upload -p /dev/ttyUSB0 --fqbn esp32:esp32:esp32wrover
+```
